@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docs — Bruno Benchmarks</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/docs.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-inner">
+      <div class="header-left">
+        <a class="brand" href="index.html">
+          <svg><use href="assets/icons.svg#icon-bolt"/></svg>
+          <span class="brand-text">Bruno Benchmarks</span>
+        </a>
+        <div class="separator"></div>
+        <a class="nav-link" href="index.html">Dashboard</a>
+        <a class="nav-link active" href="docs.html">Docs</a>
+      </div>
+      <div class="header-right">
+        <button class="theme-switch" onclick="toggleTheme()" title="Toggle theme">
+          <svg class="theme-icon moon"><use href="assets/icons.svg#icon-moon"/></svg>
+          <svg class="theme-icon sun"><use href="assets/icons.svg#icon-sun"/></svg>
+          <span class="knob"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-inner">
+      <span class="hero-badge">Open Source</span>
+      <h1>Automated performance tracking for Bruno</h1>
+      <p>Every commit. Three platforms. Zero config. Results flow from CI into this dashboard automatically.</p>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <section class="section">
+      <div class="section-label">How it works</div>
+      <h2 class="section-heading">The Pipeline</h2>
+      <p class="section-desc">From code push to trend chart in four steps — fully automated.</p>
+      <div class="pipeline">
+        <div class="pipe-step">
+          <div class="pipe-num">01</div>
+          <h3>Test</h3>
+          <p>Playwright benchmarks run on Ubuntu, macOS, and Windows on every push to <code>main</code>.</p>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-num">02</div>
+          <h3>Collect</h3>
+          <p>Results are uploaded as GitHub Actions artifacts with full statistical summaries.</p>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-num">03</div>
+          <h3>Ingest</h3>
+          <p>Given a repo and commit SHA, the script finds the run, downloads artifacts, and discovers suites.</p>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-num">04</div>
+          <h3>Visualize</h3>
+          <p>This dashboard reads the JSON and renders trend charts. No build step — pure static HTML.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Metrics</div>
+      <h2 class="section-heading">What we track</h2>
+      <p class="section-desc">Every benchmark iteration produces a full statistical profile.</p>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-name">Mean</div>
+          <div class="metric-desc">Average across all iterations</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-name">Median</div>
+          <div class="metric-desc">Middle value, resistant to outliers</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-name">P90</div>
+          <div class="metric-desc">90% of runs were faster than this</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-name">P99</div>
+          <div class="metric-desc">Worst-case tail latency</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-name">Std Dev</div>
+          <div class="metric-desc">Variance between runs</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-name">Min / Max</div>
+          <div class="metric-desc">Best and worst individual runs</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Schema</div>
+      <h2 class="section-heading">Data format</h2>
+      <p class="section-desc">Two file types power the dashboard. Both are auto-managed by the ingestion script.</p>
+      <div class="two-col">
+        <div class="col-card">
+          <h3>manifest.json</h3>
+          <p>Registry of benchmark suites. Auto-populated when new suites are ingested.</p>
+          <pre><code>{
+  "suites": [{
+    "id": "mounting",
+    "name": "Collection Mount",
+    "os": ["ubuntu", "macos", "windows"]
+  }]
+}</code></pre>
+        </div>
+        <div class="col-card">
+          <h3>data/{suite}/{os}.json</h3>
+          <p>Time-series array. One entry appended per CI run.</p>
+          <pre><code>[{
+  "commit": "abc1234",
+  "date": "2026-05-06T12:00:00Z",
+  "entries": {
+    "bru-50": {
+      "mean": 1428, "median": 671,
+      "p90": 2507, "p99": 3044,
+      "stdDev": 1088, "min": 626,
+      "max": 3044, "count": 3,
+      "timings": [3044, 626, 629]
+    }
+  }
+}]</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">Extend</div>
+      <h2 class="section-heading">Add a new benchmark</h2>
+      <p class="section-desc">Three steps. No manual config on the dashboard side.</p>
+      <div class="steps-list">
+        <div class="step-item">
+          <span class="step-num">1</span>
+          <div>
+            <h4>Write the test</h4>
+            <p>Create <code>tests/benchmarks/{name}/{name}.bench.ts</code> in the Bruno repo. Use <code>writeResults()</code> to output results.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <span class="step-num">2</span>
+          <div>
+            <h4>Run it</h4>
+            <p>Push to <code>main</code> or trigger manually. The ingestion script auto-registers the suite and creates data files.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <span class="step-num">3</span>
+          <div>
+            <h4>Done</h4>
+            <p>The dashboard picks it up on the next page load. Rename the suite in <code>manifest.json</code> if the id isn't readable.</p>
+          </div>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>Auto-registration:</strong> The ingestion script adds new suites and OS entries to <code>manifest.json</code> automatically. Suite ids come from the results filename — <code>results/mounting.json</code> becomes suite <code>mounting</code>.
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">CI</div>
+      <h2 class="section-heading">Ingestion</h2>
+      <p class="section-desc">Two inputs. Zero config. The script discovers everything from the GitHub API.</p>
+      <div class="two-col">
+        <div class="col-card">
+          <h3>Automatic</h3>
+          <p>Bruno CI sends a <code>repository_dispatch</code> with the repo and commit SHA. The script finds the run, downloads artifacts, and discovers suites and OS from filenames.</p>
+        </div>
+        <div class="col-card">
+          <h3>Manual</h3>
+          <p>Go to <strong>Actions → Ingest Benchmark Results → Run workflow</strong>. Provide the source repo and commit SHA. That's it.</p>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>How discovery works:</strong> The script calls the GitHub API to find the Benchmarks run for the commit, lists <code>benchmark-results-*</code> artifacts to determine OS, and scans <code>results/*.json</code> inside each artifact for suite ids.
+      </div>
+    </section>
+
+    <div class="footer">
+      <div class="footer-left">
+        Built for <a href="https://www.usebruno.com" target="_blank">Bruno</a> — the open-source API client.
+      </div>
+      <div class="footer-right">
+        <a href="https://github.com/usebruno/bruno" target="_blank">GitHub</a>
+        <span class="footer-sep">·</span>
+        <a href="index.html">Dashboard</a>
+        <span class="footer-sep">·</span>
+        <a href="docs.html">Docs</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function theme() { return localStorage.getItem('bench-theme') || 'dark'; }
+    function toggleTheme() {
+      const t = theme() === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('bench-theme', t);
+      document.documentElement.setAttribute('data-theme', t);
+    }
+    document.documentElement.setAttribute('data-theme', theme());
+  </script>
+</body>
+</html>

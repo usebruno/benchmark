@@ -1,0 +1,56 @@
+name: Ingest Benchmark Results
+
+on:
+  repository_dispatch:
+    types: [benchmark-results]
+
+  workflow_dispatch:
+    inputs:
+      source-repo:
+        description: 'Source repo (e.g. usebruno/bruno)'
+        required: true
+        default: 'usebruno/bruno'
+      commit-sha:
+        description: 'Commit SHA from the source repo'
+        required: true
+
+jobs:
+  ingest:
+    name: Ingest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve inputs
+        id: params
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "source-repo=${{ github.event.client_payload.source_repo }}" >> $GITHUB_OUTPUT
+            echo "commit-sha=${{ github.event.client_payload.commit_sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "source-repo=${{ github.event.inputs.source-repo }}" >> $GITHUB_OUTPUT
+            echo "commit-sha=${{ github.event.inputs.commit-sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Discover and ingest artifacts
+        run: node scripts/ingest.js
+        env:
+          SOURCE_REPO: ${{ steps.params.outputs.source-repo }}
+          COMMIT_SHA: ${{ steps.params.outputs.commit-sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --staged --quiet || git commit -m "data: ingest benchmarks @ ${{ steps.params.outputs.commit-sha }}"
+          git pull --rebase
+          git push

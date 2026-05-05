@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bruno Benchmarks</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-inner">
+      <div class="header-left">
+        <a class="brand" href="index.html">
+          <svg><use href="assets/icons.svg#icon-bolt"/></svg>
+          <span class="brand-text">Bruno Benchmarks</span>
+        </a>
+        <div class="separator"></div>
+        <select class="suite-select" id="suite-select"></select>
+        <div class="separator"></div>
+        <a class="nav-link" href="docs.html" style="font-size:13px;color:var(--muted-foreground);text-decoration:none">Docs</a>
+      </div>
+      <div class="header-right">
+        <button class="theme-switch" onclick="toggleTheme()" title="Toggle theme">
+          <svg class="theme-icon moon"><use href="assets/icons.svg#icon-moon"/></svg>
+          <svg class="theme-icon sun"><use href="assets/icons.svg#icon-sun"/></svg>
+          <span class="knob"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div id="app">
+      <div class="empty-state"><p>Loading...</p></div>
+    </div>
+    <div class="footer">
+      <div class="footer-left">
+        Built for <a href="https://www.usebruno.com" target="_blank">Bruno</a> — the open-source API client.
+      </div>
+      <div class="footer-right">
+        <a href="https://github.com/usebruno/bruno" target="_blank">GitHub</a>
+        <span class="footer-sep">·</span>
+        <a href="index.html">Dashboard</a>
+        <span class="footer-sep">·</span>
+        <a href="docs.html">Docs</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
