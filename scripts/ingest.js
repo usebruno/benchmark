@@ -142,17 +142,27 @@ async function main() {
 
     const extractDir = await downloadArtifact(artifact.id, tmpDir);
 
-    // 4. Discover suites from results/*.json files
-    const resultsDir = path.join(extractDir, 'results');
-    if (!fs.existsSync(resultsDir)) {
-      console.log(`  No results/ directory in artifact, skipping`);
+    // 4. Discover suites — find all .json files under any "results" directory
+    //    The artifact may contain paths like tests/benchmarks/results/mounting.json
+    const resultFiles = [];
+    function findResults(dir) {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          findResults(full);
+        } else if (entry.isFile() && entry.name.endsWith('.json') && dir.endsWith('results')) {
+          resultFiles.push(full);
+        }
+      }
+    }
+    findResults(extractDir);
+
+    if (resultFiles.length === 0) {
+      console.log(`  No results JSON files found in artifact, skipping`);
       continue;
     }
-
-    const resultFiles = fs.readdirSync(resultsDir).filter(f => f.endsWith('.json'));
-    for (const file of resultFiles) {
-      const suiteId = path.basename(file, '.json');
-      const filePath = path.join(resultsDir, file);
+    for (const filePath of resultFiles) {
+      const suiteId = path.basename(filePath, '.json');
       const results = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
       const entries = results.entries || results;
 
