@@ -104,27 +104,18 @@ function appendDataPoint(suiteId, os, entries) {
 async function main() {
   console.log(`Ingesting benchmarks for ${sourceRepo} @ ${commitSha.substring(0, 7)}`);
 
-  // 1. Find the workflow run for this commit
+  // 1. Find the workflow run for this commit (works for both push and pull_request events)
   console.log('Finding workflow run...');
-  const runs = await api(`/actions/runs?head_sha=${commitSha}&event=push&status=completed&per_page=10`);
+  const runs = await api(`/actions/runs?head_sha=${commitSha}&status=completed&per_page=20`);
   const benchmarkRun = runs.workflow_runs.find(r => r.name === 'Benchmarks');
 
   if (!benchmarkRun) {
-    // Also check pull_request events
-    const prRuns = await api(`/actions/runs?head_sha=${commitSha}&event=pull_request&status=completed&per_page=10`);
-    const prBenchmarkRun = prRuns.workflow_runs.find(r => r.name === 'Benchmarks');
-    if (!prBenchmarkRun) {
-      console.error('No completed Benchmarks workflow run found for this commit');
-      process.exit(1);
-    }
-    Object.assign(benchmarkRun || {}, prBenchmarkRun);
-  }
-
-  const runId = (benchmarkRun || runs.workflow_runs.find(r => r.name === 'Benchmarks'))?.id;
-  if (!runId) {
-    console.error('No completed Benchmarks workflow run found for this commit');
+    console.error(`No completed Benchmarks workflow run found for commit ${commitSha.substring(0, 7)}`);
+    console.error(`Searched ${runs.total_count} completed runs`);
     process.exit(1);
   }
+
+  const runId = benchmarkRun.id;
 
   console.log(`Found run ${runId}`);
 
