@@ -66,9 +66,13 @@ function updateManifest(suiteId, os) {
     ? JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
     : { suites: [] };
 
+  if (!manifest.sourceRepo) {
+    manifest.sourceRepo = sourceRepo;
+  }
+
   let suite = manifest.suites.find(s => s.id === suiteId);
   if (!suite) {
-    suite = { id: suiteId, name: suiteId, os: [] };
+    suite = { id: suiteId, name: suiteId, os: [], direction: 'smaller' };
     manifest.suites.push(suite);
     console.log(`  Registered new suite: ${suiteId}`);
   }

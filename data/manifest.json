@@ -1,13 +1,15 @@
 {
+  "sourceRepo": "usebruno/bruno",
   "suites": [
     {
       "id": "mounting",
-      "name": "mounting",
+      "name": "Collection Mount",
       "os": [
         "macos",
         "ubuntu",
         "windows"
-      ]
+      ],
+      "direction": "smaller"
     }
   ]
 }

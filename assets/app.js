@@ -7,7 +7,7 @@ const OS_STYLE = {
   windows: { dark: '#f78166', light: '#cf222e' }
 };
 
-const state = { suites: [], activeSuite: null, activeMetric: {}, data: {}, charts: [] };
+const state = { suites: [], activeSuite: null, activeMetric: {}, data: {}, charts: [], sourceRepo: null };
 
 function theme() { return localStorage.getItem('bench-theme') || 'dark'; }
 function osColor(os) { return (OS_STYLE[os] || {})[theme()] || '#8b949e'; }
@@ -20,7 +20,7 @@ function toggleTheme() {
 }
 
 function formatMs(v) {
-  if (v == null) return '—';
+  if (v == null) return '-';
   return v >= 1000 ? (v / 1000).toFixed(1) + 's' : Math.round(v) + 'ms';
 }
 
@@ -31,12 +31,16 @@ async function fetchJSON(url) {
   } catch { return null; }
 }
 
-function commits(suite) {
+function commitData(suite) {
   for (const os of suite.os) {
     const p = state.data[suite.id + '/' + os];
-    if (p?.length) return p.map(d => d.commit?.substring(0, 7) || '');
+    if (p?.length) return p;
   }
   return [];
+}
+
+function commitLabels(suite) {
+  return commitData(suite).map(d => d.commit?.substring(0, 7) || '');
 }
 
 function entryKeys(suite) {
@@ -59,21 +63,92 @@ function latestValue(suite, key, metric) {
   return null;
 }
 
+function commitUrl(commit) {
+  if (!state.sourceRepo || !commit) return null;
+  return `https://github.com/${state.sourceRepo}/commit/${commit}`;
+}
+
+function directionLabel(suite) {
+  const dir = suite.direction || 'smaller';
+  return dir === 'smaller' ? 'lower is better' : 'higher is better';
+}
+
+function buildSummary(suite, metric) {
+  const keys = entryKeys(suite);
+  const allData = commitData(suite);
+  const dataPoints = allData.length;
+
+  let fastestOS = null;
+  let fastestVal = Infinity;
+  let stableOS = null;
+  let stableVal = Infinity;
+  const dir = suite.direction || 'smaller';
+
+  suite.os.forEach(os => {
+    const pts = state.data[suite.id + '/' + os] || [];
+    if (!pts.length) return;
+    const last = pts[pts.length - 1];
+
+    let totalMean = 0;
+    let totalStd = 0;
+    let count = 0;
+    keys.forEach(key => {
+      const e = last.entries[key];
+      if (e) {
+        totalMean += e[metric] || 0;
+        totalStd += e.stdDev || 0;
+        count++;
+      }
+    });
+
+    if (count > 0) {
+      const avg = totalMean / count;
+      const avgStd = totalStd / count;
+
+      const isBetter = dir === 'smaller' ? avg < fastestVal : avg > fastestVal;
+      if (isBetter || fastestOS === null) {
+        fastestOS = os;
+        fastestVal = avg;
+      }
+
+      if (avgStd < stableVal) {
+        stableOS = os;
+        stableVal = avgStd;
+      }
+    }
+  });
+
+  return { dataPoints, benchmarks: keys.length, fastestOS, fastestVal, stableOS, stableVal };
+}
+
 function makeChart(el, key, suite, metric) {
   const chart = echarts.init(el);
-  const labels = commits(suite);
+  const labels = commitLabels(suite);
+  const allPts = commitData(suite);
   const t = theme();
   const mutedFg = t === 'dark' ? '#6e7681' : '#656d76';
-  const grid = t === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)';
+  const gridColor = t === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)';
   const tipBg = t === 'dark' ? 'hsl(222,47%,8%)' : '#fff';
   const tipBorder = t === 'dark' ? 'hsl(217,20%,16%)' : 'hsl(214,32%,91%)';
   const tipText = t === 'dark' ? '#c9d1d9' : '#424a53';
   const tipTitle = t === 'dark' ? '#f0f6fc' : '#1f2328';
+  const tipLink = t === 'dark' ? '#58a6ff' : '#0969da';
 
   chart.setOption({
     backgroundColor: 'transparent',
+    toolbox: {
+      show: true,
+      right: 8,
+      top: 0,
+      iconStyle: { borderColor: mutedFg },
+      emphasis: { iconStyle: { borderColor: tipTitle } },
+      feature: {
+        saveAsImage: { title: 'Save', pixelRatio: 2 }
+      }
+    },
     tooltip: {
       trigger: 'axis',
+      enterable: true,
       backgroundColor: tipBg,
       borderColor: tipBorder,
       textStyle: { color: tipText, fontSize: 12 },
@@ -82,9 +157,15 @@ function makeChart(el, key, suite, metric) {
         const idx = params[0]?.dataIndex;
         const anyOS = suite.os.find(os => state.data[suite.id + '/' + os]?.[idx]);
         const pt = anyOS ? state.data[suite.id + '/' + anyOS][idx] : null;
-        let h = pt
-          ? `<div style="margin-bottom:4px;font-weight:600;font-size:11px;color:${tipTitle}">${pt.commit?.substring(0, 7) || ''} · ${new Date(pt.date).toLocaleDateString()}</div>`
-          : '';
+        let h = '';
+        if (pt) {
+          const sha = pt.commit?.substring(0, 7) || '';
+          const url = commitUrl(pt.commit);
+          const link = url
+            ? `<a href="${url}" target="_blank" style="color:${tipLink};text-decoration:none">${sha}</a>`
+            : sha;
+          h = `<div style="margin-bottom:4px;font-weight:600;font-size:11px;color:${tipTitle}">${link} · ${new Date(pt.date).toLocaleDateString()}</div>`;
+        }
         params.filter(p => p.value != null && !p.seriesName.includes(' min') && !p.seriesName.includes(' range')).forEach(p => {
           h += `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin:1px 0"><span style="width:6px;height:6px;border-radius:50%;background:${p.color};display:inline-block"></span>${p.seriesName} <b style="margin-left:auto">${formatMs(p.value)}</b></div>`;
         });
@@ -92,12 +173,33 @@ function makeChart(el, key, suite, metric) {
       }
     },
     legend: {
-      show: true, top: 4, right: 0,
+      show: true, top: 4, right: 40,
       textStyle: { color: mutedFg, fontSize: 11 },
       icon: 'circle', itemWidth: 6, itemHeight: 6, itemGap: 14,
       data: suite.os
     },
-    grid: { top: 32, right: 12, bottom: 24, left: 48 },
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: 0,
+        filterMode: 'none'
+      },
+      {
+        type: 'slider',
+        xAxisIndex: 0,
+        height: 16,
+        bottom: 2,
+        borderColor: 'transparent',
+        backgroundColor: gridColor,
+        fillerColor: (t === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
+        handleSize: '100%',
+        handleStyle: { color: mutedFg, borderColor: mutedFg },
+        textStyle: { color: mutedFg, fontSize: 9 },
+        showDetail: false,
+        show: labels.length > 10
+      }
+    ],
+    grid: { top: 32, right: 12, bottom: labels.length > 10 ? 36 : 24, left: 48 },
     xAxis: {
       type: 'category', data: labels,
       axisLine: { show: false }, axisTick: { show: false },
@@ -105,7 +207,7 @@ function makeChart(el, key, suite, metric) {
     },
     yAxis: {
       type: 'value',
-      splitLine: { lineStyle: { color: grid } },
+      splitLine: { lineStyle: { color: gridColor } },
       axisLine: { show: false }, axisTick: { show: false },
       axisLabel: { color: mutedFg, fontSize: 10, formatter: v => formatMs(v) }
     },
@@ -118,33 +220,21 @@ function makeChart(el, key, suite, metric) {
         const entry = d.entries[key];
         if (!entry) return null;
         return (entry.max ?? null) !== null && (entry.min ?? null) !== null
-          ? entry.max - entry.min
-          : null;
+          ? entry.max - entry.min : null;
       });
 
       return [
-        // Min baseline (invisible, serves as the base for the band)
         {
-          name: os + ' min',
-          type: 'line', smooth: 0.4,
-          symbol: 'none',
-          lineStyle: { width: 0 },
-          stack: os + '-band',
-          silent: true,
-          data: minData
+          name: os + ' min', type: 'line', smooth: 0.4,
+          symbol: 'none', lineStyle: { width: 0 },
+          stack: os + '-band', silent: true, data: minData
         },
-        // Max - min range (stacked on min, creates the band)
         {
-          name: os + ' range',
-          type: 'line', smooth: 0.4,
-          symbol: 'none',
-          lineStyle: { width: 0 },
-          stack: os + '-band',
-          areaStyle: { color: c + '12' },
-          silent: true,
-          data: maxData
+          name: os + ' range', type: 'line', smooth: 0.4,
+          symbol: 'none', lineStyle: { width: 0 },
+          stack: os + '-band', areaStyle: { color: c + '12' },
+          silent: true, data: maxData
         },
-        // Main metric line
         {
           name: os, type: 'line', smooth: 0.4,
           symbol: 'circle', symbolSize: 4,
@@ -164,6 +254,7 @@ function makeChart(el, key, suite, metric) {
   });
 
   state.charts.push(chart);
+  return chart;
 }
 
 function render() {
@@ -188,7 +279,7 @@ function render() {
 
   const left = document.createElement('div');
   left.className = 'toolbar-left';
-  left.innerHTML = `<div class="toolbar-title">${suite.name}</div><div class="toolbar-subtitle">${suite.os.join(' · ')} · ${keys.length} benchmarks</div>`;
+  left.innerHTML = `<div class="toolbar-title">${suite.name}<span class="direction-badge">${directionLabel(suite)}</span></div><div class="toolbar-subtitle">${suite.os.join(' · ')} · ${keys.length} benchmarks</div>`;
   toolbar.appendChild(left);
 
   const right = document.createElement('div');
@@ -206,6 +297,32 @@ function render() {
   right.appendChild(pills);
   toolbar.appendChild(right);
   app.appendChild(toolbar);
+
+  // Summary row
+  if (keys.length > 0) {
+    const summary = buildSummary(suite, metric);
+    const row = document.createElement('div');
+    row.className = 'summary-row';
+
+    row.innerHTML = `
+      <div class="summary-card">
+        <div class="summary-label">Data Points</div>
+        <div class="summary-value">${summary.dataPoints}</div>
+        <div class="summary-detail">across ${summary.benchmarks} benchmarks</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">${(suite.direction || 'smaller') === 'smaller' ? 'Fastest' : 'Best'} OS</div>
+        <div class="summary-value">${summary.fastestOS || '-'}</div>
+        <div class="summary-detail">avg ${METRIC_LABELS[metric]}: ${formatMs(summary.fastestVal)}</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Most Stable</div>
+        <div class="summary-value">${summary.stableOS || '-'}</div>
+        <div class="summary-detail">lowest avg std dev: ${formatMs(summary.stableVal)}</div>
+      </div>
+    `;
+    app.appendChild(row);
+  }
 
   // Charts
   const chartsGrid = document.createElement('div');
@@ -244,12 +361,23 @@ function render() {
     card.appendChild(container);
     chartsGrid.appendChild(card);
 
+    // Expand/collapse on click
+    card.onclick = (e) => {
+      if (e.target.closest('.chart-container')) return;
+      const wasExpanded = card.classList.contains('expanded');
+      card.classList.toggle('expanded');
+      const chartInstance = state.charts.find(c => c.getDom() === container);
+      if (chartInstance) {
+        setTimeout(() => chartInstance.resize(), 250);
+      }
+    };
+
     requestAnimationFrame(() => makeChart(container, key, suite, metric));
   });
 
   app.appendChild(chartsGrid);
 
-  // Sync cursor position across all charts
+  // Sync cursor across all charts
   requestAnimationFrame(() => {
     if (state.charts.length > 1) {
       echarts.connect(state.charts);
@@ -283,6 +411,7 @@ async function init() {
 
   state.suites = manifest.suites;
   state.activeSuite = manifest.suites[0].id;
+  state.sourceRepo = manifest.sourceRepo || null;
 
   for (const suite of manifest.suites) {
     state.activeMetric[suite.id] = 'mean';
@@ -293,7 +422,6 @@ async function init() {
 
   populateSuiteSelect();
   render();
-  document.getElementById('footer-updated').textContent = 'Updated ' + new Date().toLocaleString();
 }
 
 init();
