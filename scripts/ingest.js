@@ -60,7 +60,7 @@ async function downloadArtifact(artifactId, destDir) {
   return extractDir;
 }
 
-function updateManifest(suiteId, os) {
+function updateManifest(suiteId, os, suiteMeta) {
   const manifestPath = path.join('data', 'manifest.json');
   const manifest = fs.existsSync(manifestPath)
     ? JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
@@ -72,9 +72,20 @@ function updateManifest(suiteId, os) {
 
   let suite = manifest.suites.find(s => s.id === suiteId);
   if (!suite) {
-    suite = { id: suiteId, name: suiteId, os: [], direction: 'smaller', unit: 'ms' };
+    suite = {
+      id: suiteId,
+      name: suiteMeta?.name || suiteId,
+      os: [],
+      direction: suiteMeta?.direction || 'smaller',
+      unit: suiteMeta?.unit || 'ms'
+    };
     manifest.suites.push(suite);
     console.log(`  Registered new suite: ${suiteId}`);
+  } else if (suiteMeta) {
+    // Update metadata from results if the source provides it
+    if (suiteMeta.name && suiteMeta.name !== suiteId) suite.name = suiteMeta.name;
+    if (suiteMeta.direction) suite.direction = suiteMeta.direction;
+    if (suiteMeta.unit) suite.unit = suiteMeta.unit;
   }
 
   if (!suite.os.includes(os)) {
@@ -169,10 +180,11 @@ async function main() {
       const suiteId = path.basename(filePath, '.json');
       const results = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
       const entries = results.entries || results;
+      const suiteMeta = results.suite || null;
 
-      console.log(`  Suite: ${suiteId} (${Object.keys(entries).length} entries)`);
+      console.log(`  Suite: ${suiteId} (${Object.keys(entries).length} entries)${suiteMeta ? ` [${suiteMeta.unit}, ${suiteMeta.direction}]` : ''}`);
 
-      updateManifest(suiteId, os);
+      updateManifest(suiteId, os, suiteMeta);
       appendDataPoint(suiteId, os, entries);
       ingested++;
     }
