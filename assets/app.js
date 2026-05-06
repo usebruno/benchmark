@@ -40,8 +40,10 @@ async function init() {
     />`, app);
   }
 
-  // Load only the first suite initially
-  await fetchSuiteData(manifest.suites[0]);
+  // Resolve initial suite from URL hash or default to first
+  const hashSuite = location.hash.replace('#', '');
+  const initialSuite = manifest.suites.find(s => s.id === hashSuite) || manifest.suites[0];
+  await fetchSuiteData(initialSuite);
   renderApp(cache);
 
   window.toggleTheme = () => {

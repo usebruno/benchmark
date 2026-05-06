@@ -5,8 +5,19 @@ import { Toolbar } from './Toolbar.js';
 import { SummaryRow } from './SummaryRow.js';
 import { Chart } from './Chart.js';
 
+function getInitialSuite(suites) {
+  const hash = location.hash.replace('#', '');
+  const match = suites.find(s => s.id === hash);
+  return match ? match.id : suites[0]?.id;
+}
+
 export function Dashboard({ suites, data, sourceRepo, onSuiteChange }) {
-  const [activeSuite, setActiveSuite] = useState(suites[0]?.id);
+  const [activeSuite, setActiveSuiteRaw] = useState(() => getInitialSuite(suites));
+
+  const setActiveSuite = (id) => {
+    setActiveSuiteRaw(id);
+    history.replaceState(null, '', '#' + id);
+  };
   const [loading, setLoading] = useState(false);
   const [metrics, setMetrics] = useState(() => {
     const m = {};
