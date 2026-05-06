@@ -248,6 +248,14 @@ function render() {
   });
 
   app.appendChild(chartsGrid);
+
+  // Sync cursor position across all charts
+  requestAnimationFrame(() => {
+    if (state.charts.length > 1) {
+      echarts.connect(state.charts);
+    }
+  });
+
   window.onresize = () => state.charts.forEach(c => c.resize());
 }
 
