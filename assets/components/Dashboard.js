@@ -36,6 +36,14 @@ export function Dashboard({ suites, data, sourceRepo }) {
     const sel = document.getElementById('suite-select');
     if (!sel) return;
     sel.innerHTML = '';
+    if (suites.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No suites available';
+      opt.disabled = true;
+      sel.appendChild(opt);
+      return;
+    }
     suites.forEach(s => {
       const opt = document.createElement('option');
       opt.value = s.id;
@@ -47,7 +55,12 @@ export function Dashboard({ suites, data, sourceRepo }) {
   }, [suites, activeSuite]);
 
   if (!suite) {
-    return html`<div class="empty-state"><p>No data available.</p></div>`;
+    return html`
+      <div class="empty-state">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <div class="empty-title">No suite selected</div>
+        <p>Select a benchmark suite from the dropdown above.</p>
+      </div>`;
   }
 
   const handleMetricChange = (m) => setMetrics(prev => ({ ...prev, [activeSuite]: m }));
@@ -78,7 +91,12 @@ export function Dashboard({ suites, data, sourceRepo }) {
 
     <div class="charts">
       ${keys.length === 0
-        ? html`<div class="empty-state"><p>No benchmark data yet. Run benchmarks in CI to see results.</p></div>`
+        ? html`
+            <div class="empty-state">
+              <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              <div class="empty-title">No data yet</div>
+              <p>Run benchmarks in CI and trigger ingestion to see charts here.</p>
+            </div>`
         : keys.map(key => html`
             <${Chart}
               key=${key + metric + activeSuite + sortBy}

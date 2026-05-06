@@ -7,7 +7,12 @@ async function init() {
 
   const manifest = await fetchJSON('data/manifest.json');
   if (!manifest?.suites?.length) {
-    document.getElementById('app').innerHTML = '<div class="empty-state"><p>No benchmark suites configured.</p></div>';
+    document.getElementById('app').innerHTML = `
+      <div class="empty-state">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        <div class="empty-title">No benchmarks yet</div>
+        <p>Run benchmarks in CI and trigger the ingestion workflow to see data here.</p>
+      </div>`;
     return;
   }
 

@@ -16,7 +16,9 @@
           <span class="brand-text">Bruno Benchmarks</span>
         </a>
         <div class="separator"></div>
-        <select class="suite-select" id="suite-select"></select>
+        <select class="suite-select" id="suite-select">
+          <option disabled selected>Loading...</option>
+        </select>
         <div class="separator"></div>
         <a class="nav-link" href="docs.html" style="font-size:13px;color:var(--muted-foreground);text-decoration:none">Docs</a>
       </div>
@@ -32,7 +34,10 @@
 
   <div class="main">
     <div id="app">
-      <div class="empty-state"><p>Loading...</p></div>
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Loading benchmark data...</p>
+      </div>
     </div>
     <div class="footer">
       <div class="footer-left">
