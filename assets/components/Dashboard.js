@@ -5,8 +5,9 @@ import { Toolbar } from './Toolbar.js';
 import { SummaryRow } from './SummaryRow.js';
 import { Chart } from './Chart.js';
 
-export function Dashboard({ suites, data, sourceRepo }) {
+export function Dashboard({ suites, data, sourceRepo, onSuiteChange }) {
   const [activeSuite, setActiveSuite] = useState(suites[0]?.id);
+  const [loading, setLoading] = useState(false);
   const [metrics, setMetrics] = useState(() => {
     const m = {};
     suites.forEach(s => { m[s.id] = 'mean'; });
@@ -24,6 +25,16 @@ export function Dashboard({ suites, data, sourceRepo }) {
     [rawKeys, sortBy, data, suite, metric]
   );
 
+  // Fetch data when suite changes
+  useEffect(() => {
+    if (!suite || !onSuiteChange) return;
+    const hasData = suite.os.some(os => data[suite.id + '/' + os]?.length > 0);
+    if (hasData) return;
+
+    setLoading(true);
+    onSuiteChange(suite).then(() => setLoading(false));
+  }, [activeSuite]);
+
   useEffect(() => { chartsRef.current = []; }, [activeSuite, metric, sortBy]);
 
   useEffect(() => {
@@ -32,6 +43,7 @@ export function Dashboard({ suites, data, sourceRepo }) {
     return () => window.removeEventListener('resize', handler);
   }, []);
 
+  // Populate suite select
   useEffect(() => {
     const sel = document.getElementById('suite-select');
     if (!sel) return;
@@ -51,7 +63,7 @@ export function Dashboard({ suites, data, sourceRepo }) {
       opt.selected = s.id === activeSuite;
       sel.appendChild(opt);
     });
-    sel.onchange = () => setActiveSuite(sel.value);
+    sel.onchange = (e) => setActiveSuite(e.target.value);
   }, [suites, activeSuite]);
 
   if (!suite) {
@@ -63,11 +75,18 @@ export function Dashboard({ suites, data, sourceRepo }) {
       </div>`;
   }
 
+  if (loading) {
+    return html`
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Loading ${suite.name} data...</p>
+      </div>`;
+  }
+
   const handleMetricChange = (m) => setMetrics(prev => ({ ...prev, [activeSuite]: m }));
   const connectGroupId = 'bench-' + activeSuite + '-' + metric;
   const handleChartReady = (chart, key) => {
     chartsRef.current.push({ chart, key });
-    // Connect all charts once all are ready
     if (chartsRef.current.length === keys.length && keys.length > 1) {
       chartsRef.current.forEach(c => { c.chart.group = connectGroupId; });
       echarts.connect(connectGroupId);
