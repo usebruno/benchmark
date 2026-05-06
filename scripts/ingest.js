@@ -72,7 +72,7 @@ function updateManifest(suiteId, os) {
 
   let suite = manifest.suites.find(s => s.id === suiteId);
   if (!suite) {
-    suite = { id: suiteId, name: suiteId, os: [], direction: 'smaller' };
+    suite = { id: suiteId, name: suiteId, os: [], direction: 'smaller', unit: 'ms' };
     manifest.suites.push(suite);
     console.log(`  Registered new suite: ${suiteId}`);
   }

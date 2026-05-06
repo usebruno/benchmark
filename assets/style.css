@@ -137,6 +137,21 @@ body {
 .toolbar-subtitle { font-size: 13px; color: var(--muted-foreground); }
 .toolbar-right { display: flex; align-items: center; gap: 8px; }
 
+/* ── Sort select ── */
+.sort-select {
+  background: var(--secondary);
+  color: var(--foreground-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.sort-select:hover { border-color: color-mix(in srgb, var(--border) 100%, var(--foreground) 15%); }
+.sort-select:focus { outline: none; border-color: var(--primary); }
+
 /* ── Metric pills ── */
 .metric-pills { display: flex; background: var(--secondary); border-radius: var(--radius); padding: 2px; gap: 1px; }
 
@@ -203,6 +218,10 @@ body {
   margin-left: 8px;
   vertical-align: middle;
 }
+
+/* ── Theme colors for arrows ── */
+:root[data-theme="dark"] { --green: #3fb950; --red: #f78166; }
+:root[data-theme="light"] { --green: #1a7f37; --red: #cf222e; }
 
 /* ── Charts ── */
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

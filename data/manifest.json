@@ -2,6 +2,17 @@
   "sourceRepo": "usebruno/bruno",
   "suites": [
     {
+      "id": "rendering",
+      "name": "[Demo] Response Rendering",
+      "os": [
+        "ubuntu",
+        "macos",
+        "windows"
+      ],
+      "direction": "smaller",
+      "unit": "ms"
+    },
+    {
       "id": "mounting",
       "name": "Collection Mount",
       "os": [
@@ -9,7 +20,8 @@
         "ubuntu",
         "windows"
       ],
-      "direction": "smaller"
+      "direction": "smaller",
+      "unit": "ms"
     }
   ]
 }
