@@ -85,7 +85,7 @@ function makeChart(el, key, suite, metric) {
         let h = pt
           ? `<div style="margin-bottom:4px;font-weight:600;font-size:11px;color:${tipTitle}">${pt.commit?.substring(0, 7) || ''} · ${new Date(pt.date).toLocaleDateString()}</div>`
           : '';
-        params.filter(p => p.value != null).forEach(p => {
+        params.filter(p => p.value != null && !p.seriesName.includes(' min') && !p.seriesName.includes(' range')).forEach(p => {
           h += `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin:1px 0"><span style="width:6px;height:6px;border-radius:50%;background:${p.color};display:inline-block"></span>${p.seriesName} <b style="margin-left:auto">${formatMs(p.value)}</b></div>`;
         });
         return h;
@@ -94,7 +94,8 @@ function makeChart(el, key, suite, metric) {
     legend: {
       show: true, top: 4, right: 0,
       textStyle: { color: mutedFg, fontSize: 11 },
-      icon: 'circle', itemWidth: 6, itemHeight: 6, itemGap: 14
+      icon: 'circle', itemWidth: 6, itemHeight: 6, itemGap: 14,
+      data: suite.os
     },
     grid: { top: 32, right: 12, bottom: 24, left: 48 },
     xAxis: {
@@ -108,23 +109,57 @@ function makeChart(el, key, suite, metric) {
       axisLine: { show: false }, axisTick: { show: false },
       axisLabel: { color: mutedFg, fontSize: 10, formatter: v => formatMs(v) }
     },
-    series: suite.os.map(os => {
+    series: suite.os.flatMap(os => {
       const pts = state.data[suite.id + '/' + os] || [];
       const c = osColor(os);
-      return {
-        name: os, type: 'line', smooth: 0.4,
-        symbol: 'circle', symbolSize: 4,
-        lineStyle: { width: 2 },
-        itemStyle: { color: c },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: c + '20' },
-            { offset: 1, color: c + '02' }
-          ])
+      const mainData = pts.map(d => d.entries[key]?.[metric] ?? null);
+      const minData = pts.map(d => d.entries[key]?.min ?? null);
+      const maxData = pts.map(d => {
+        const entry = d.entries[key];
+        if (!entry) return null;
+        return (entry.max ?? null) !== null && (entry.min ?? null) !== null
+          ? entry.max - entry.min
+          : null;
+      });
+
+      return [
+        // Min baseline (invisible, serves as the base for the band)
+        {
+          name: os + ' min',
+          type: 'line', smooth: 0.4,
+          symbol: 'none',
+          lineStyle: { width: 0 },
+          stack: os + '-band',
+          silent: true,
+          data: minData
         },
-        emphasis: { focus: 'series' },
-        data: pts.map(d => d.entries[key]?.[metric] ?? null)
-      };
+        // Max - min range (stacked on min, creates the band)
+        {
+          name: os + ' range',
+          type: 'line', smooth: 0.4,
+          symbol: 'none',
+          lineStyle: { width: 0 },
+          stack: os + '-band',
+          areaStyle: { color: c + '12' },
+          silent: true,
+          data: maxData
+        },
+        // Main metric line
+        {
+          name: os, type: 'line', smooth: 0.4,
+          symbol: 'circle', symbolSize: 4,
+          lineStyle: { width: 2 },
+          itemStyle: { color: c },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: c + '20' },
+              { offset: 1, color: c + '02' }
+            ])
+          },
+          emphasis: { focus: 'series' },
+          data: mainData
+        }
+      ];
     })
   });
 
