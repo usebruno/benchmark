@@ -15,7 +15,7 @@ export function Chart({ data, suite, entryKey, metric, sourceRepo, expanded, onT
     const chart = echarts.init(containerRef.current);
     chart.setOption(buildChartOptions(data, suite, entryKey, metric, sourceRepo));
     chartRef.current = chart;
-    onChartReady(chart);
+    onChartReady(chart, entryKey);
 
     return () => chart.dispose();
   }, [data, suite, entryKey, metric, sourceRepo, expanded]);

@@ -16,14 +16,9 @@ export function buildChartOptions(data, suite, key, metric, sourceRepo) {
 
   return {
     backgroundColor: 'transparent',
-    toolbox: {
-      show: true, right: 8, top: 0,
-      iconStyle: { borderColor: mutedFg },
-      emphasis: { iconStyle: { borderColor: tipTitle } },
-      feature: { saveAsImage: { title: 'Save', pixelRatio: 2 } }
-    },
+    animation: false,
     tooltip: {
-      trigger: 'axis', enterable: true,
+      trigger: 'axis',
       backgroundColor: tipBg, borderColor: tipBorder,
       textStyle: { color: tipText, fontSize: 12 },
       axisPointer: { type: 'line', lineStyle: { color: mutedFg, opacity: 0.2 } },
@@ -45,7 +40,7 @@ export function buildChartOptions(data, suite, key, metric, sourceRepo) {
       }
     },
     legend: {
-      show: true, top: 4, right: 40,
+      show: true, top: 4, right: 0,
       textStyle: { color: mutedFg, fontSize: 11 },
       icon: 'circle', itemWidth: 6, itemHeight: 6, itemGap: 14,
       data: suite.os

@@ -137,6 +137,29 @@ body {
 .toolbar-subtitle { font-size: 13px; color: var(--muted-foreground); }
 .toolbar-right { display: flex; align-items: center; gap: 8px; }
 
+/* ── Save button ── */
+.save-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--secondary);
+  color: var(--foreground-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.save-btn:hover {
+  color: var(--foreground);
+  border-color: color-mix(in srgb, var(--border) 100%, var(--foreground) 15%);
+}
+
+.save-btn svg { flex-shrink: 0; }
+
 /* ── Sort select ── */
 .sort-select {
   background: var(--secondary);

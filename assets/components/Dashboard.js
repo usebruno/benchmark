@@ -27,14 +27,7 @@ export function Dashboard({ suites, data, sourceRepo }) {
   useEffect(() => { chartsRef.current = []; }, [activeSuite, metric, sortBy]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (chartsRef.current.length > 1) echarts.connect(chartsRef.current);
-    }, 100);
-    return () => clearTimeout(timer);
-  });
-
-  useEffect(() => {
-    const handler = () => chartsRef.current.forEach(c => c.resize());
+    const handler = () => chartsRef.current.forEach(c => c.chart.resize());
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
   }, []);
@@ -58,7 +51,15 @@ export function Dashboard({ suites, data, sourceRepo }) {
   }
 
   const handleMetricChange = (m) => setMetrics(prev => ({ ...prev, [activeSuite]: m }));
-  const handleChartReady = (chart) => { chartsRef.current.push(chart); };
+  const connectGroupId = 'bench-' + activeSuite + '-' + metric;
+  const handleChartReady = (chart, key) => {
+    chartsRef.current.push({ chart, key });
+    // Connect all charts once all are ready
+    if (chartsRef.current.length === keys.length && keys.length > 1) {
+      chartsRef.current.forEach(c => { c.chart.group = connectGroupId; });
+      echarts.connect(connectGroupId);
+    }
+  };
   const toggleCard = (key) => setExpandedCard(prev => prev === key ? null : key);
 
   return html`
